@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atendimento SUS - sofia ususpeita socorro</title>
+</head>
+<body>
+    <h1>Bem-vindo ao Atendimento do SUS!</h1>
+    
+    <form method="POST">
+        <label for="especialidade">Escolha sua especialidade:</label>
+        <select name="especialidade" required>
+            <option value="Clínica Geral">Clínica Geral</option>
+            <option value="Ginecologia">Ginecologia</option>
+            <option value="Pediatria">Pediatria</option>
+            <option value="Geriatria">Geriatria</option>
+            <option value="Ortopedia">Ortopedia</option>
+        </select>
+        
+        <br><br>
+        
+        <label for="tipo">Tipo de atendimento:</label>
+        <input type="radio" name="tipo" value="1" required> Preferencial
+        <input type="radio" name="tipo" value="2" required> Normal
+
+        <br><br>
+        
+        <button type="submit">Obter senha</button>
+    </form>
+
+    {% if senha %}
+    <p>Sua senha é: {{ senha }} ({{ especialidade }})</p>
+    {% elif mensagem %}
+    <p>{{ mensagem }}</p>
+    {% endif %}
+
+    <br>
+
+    {% if senha_chamada %}
+    <p>{{ senha_chamada }}</p>
+    {% endif %}
+
+    <br>
+    <a href="{{ url_for('index') }}?chamar=true">Chamar próxima senha</a>
+    <br>
+    
+<a href="{{ url_for('monitor') }}">Ver monitor de senhas</a>
+
+</body>
+</html>
