@@ -3,7 +3,6 @@ import random
 
 app = Flask(__name__)
 
-# Dados principais
 especialidades = {
     'Clínica Geral': list(range(1, 61)),
     'Ginecologia': list(range(1, 41)),
@@ -17,8 +16,6 @@ fila_normal = {esp: [] for esp in especialidades}
 
 atendentes = ["Atendente 1", "Atendente 2"]
 turno = 0
-
-# Lista para monitor (últimas senhas chamadas)
 ultimas_senhas = []
 
 @app.route("/", methods=["GET", "POST"])
@@ -39,16 +36,16 @@ def index():
             else:
                 fila_normal[especialidade].append(senha_usuario)
 
-            return render_template('index.html', senha=senha_usuario, especialidade=especialidade)
+            return render_template('index.html', senha=senha_usuario, especialidade=especialidade, especialidades=especialidades)
 
         else:
-            return render_template('index.html', mensagem="Não há mais senhas disponíveis para essa especialidade.")
+            return render_template('index.html', mensagem="Não há mais senhas disponíveis para essa especialidade.", especialidades=especialidades)
 
     senha_chamada = None
     if request.args.get("chamar"):
         senha_chamada = chamar_proxima_senha()
 
-    return render_template("index.html", senha_chamada=senha_chamada)
+    return render_template("index.html", senha_chamada=senha_chamada, especialidades=especialidades)
 
 @app.route("/monitor")
 def monitor():
@@ -77,8 +74,8 @@ def chamar_proxima_senha():
             "atendente": atendente
         }
 
-        ultimas_senhas.insert(0, registro)  # adiciona no início
-        ultimas_senhas[:] = ultimas_senhas[:10]  # mantém só os 10 últimos
+        ultimas_senhas.insert(0, registro)
+        ultimas_senhas[:] = ultimas_senhas[:10]
 
         return f"Senha chamada: {senha} (Especialidade: {esp}) - Atendente: {atendente}"
 

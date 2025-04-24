@@ -3,49 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atendimento SUS - sofia ususpeita socorro</title>
+    <title>Atendimento do SUS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            text-align: center;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #1a73e8;
+        }
+
+        .painel {
+            background-color: #ffffff;
+            padding: 30px;
+            margin: 30px auto;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+        }
+
+        .senha {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .info {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select, button {
+            padding: 10px;
+            font-size: 1rem;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        .btn-chamar {
+            margin-top: 20px;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: #1a73e8;
+            font-weight: bold;
+        }
+
+        .voltar {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Bem-vindo ao Atendimento do SUS!</h1>
-    
-    <form method="POST">
-        <label for="especialidade">Escolha sua especialidade:</label>
-        <select name="especialidade" required>
-            <option value="Clínica Geral">Clínica Geral</option>
-            <option value="Ginecologia">Ginecologia</option>
-            <option value="Pediatria">Pediatria</option>
-            <option value="Geriatria">Geriatria</option>
-            <option value="Ortopedia">Ortopedia</option>
-        </select>
-        
-        <br><br>
-        
-        <label for="tipo">Tipo de atendimento:</label>
-        <input type="radio" name="tipo" value="1" required> Preferencial
-        <input type="radio" name="tipo" value="2" required> Normal
 
-        <br><br>
-        
-        <button type="submit">Obter senha</button>
-    </form>
+    <h1>SUS</h1>
 
-    {% if senha %}
-    <p>Sua senha é: {{ senha }} ({{ especialidade }})</p>
-    {% elif mensagem %}
-    <p>{{ mensagem }}</p>
-    {% endif %}
+    <div class="painel">
+        {% if senha %}
+            <p class="info">Senha gerada para:</p>
+            <div class="senha">{{ senha }}</div>
+            <p class="info">Especialidade: {{ especialidade }}</p>
+            <a href="{{ url_for('index') }}" class="voltar">Voltar para o início</a>
 
-    <br>
+        {% elif mensagem %}
+            <p class="info">{{ mensagem }}</p>
+            <a href="{{ url_for('index') }}" class="voltar">Voltar para o início</a>
 
-    {% if senha_chamada %}
-    <p>{{ senha_chamada }}</p>
-    {% endif %}
+        {% elif senha_chamada %}
+            <p class="info">{{ senha_chamada }}</p>
+            <a href="{{ url_for('index') }}" class="voltar">Voltar para o início</a>
 
-    <br>
-    <a href="{{ url_for('index') }}?chamar=true">Chamar próxima senha</a>
-    <br>
-    
-<a href="{{ url_for('monitor') }}">Ver monitor de senhas</a>
+        {% else %}
+            <form method="post">
+                <label for="especialidade">Escolha a especialidade:</label>
+                <select name="especialidade" required>
+                    {% for esp in especialidades %}
+                        <option value="{{ esp }}">{{ esp }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="tipo">Tipo de atendimento:</label>
+                <select name="tipo" required>
+                    <option value="1">Preferencial</option>
+                    <option value="2">Normal</option>
+                </select>
+
+                <button type="submit">Gerar Senha</button>
+            </form>
+        {% endif %}
+
+        <form method="get" class="btn-chamar">
+            <input type="hidden" name="chamar" value="1">
+            <button type="submit">Chamar Próxima Senha</button>
+        </form>
+    </div>
+
+    <a href="{{ url_for('monitor') }}">Ver monitor de senhas</a>
 
 </body>
 </html>
