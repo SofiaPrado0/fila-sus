@@ -34,6 +34,7 @@
         th, td {
             padding: 12px;
             border-bottom: 1px solid #ddd;
+            text-align: center;
         }
 
         th {
@@ -71,27 +72,21 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Senha</th>
+                        <th>Código</th>
                         <th>Especialidade</th>
                         <th>Tipo</th>
                         <th>Atendente</th>
+                        <th>Hora Chamada</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for s in senhas if s.tipo == 'Preferencial' %}
-                        <tr class="preferencial">
-                            <td>{{ s.senha }}</td>
+                    {% for s in senhas %}
+                        <tr class="{% if s.tipo == 'P' %}preferencial{% endif %}">
+                            <td>{{ s.codigo }}</td>
                             <td>{{ s.especialidade }}</td>
-                            <td>{{ s.tipo }}</td>
-                            <td>{{ s.atendente }}</td>
-                        </tr>
-                    {% endfor %}
-                    {% for s in senhas if s.tipo == 'Normal' %}
-                        <tr>
-                            <td>{{ s.senha }}</td>
-                            <td>{{ s.especialidade }}</td>
-                            <td>{{ s.tipo }}</td>
-                            <td>{{ s.atendente }}</td>
+                            <td>{% if s.tipo == 'P' %}Preferencial{% else %}Normal{% endif %}</td>
+                            <td>{{ s.atendente or '---' }}</td>
+                            <td>{{ s.hora_chamada.strftime('%H:%M:%S') if s.hora_chamada else '---' }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

@@ -1,85 +1,108 @@
-from flask import *
-import random
+from flask import Flask, render_template, request
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+from models import db, Senha, get_especialidades, escolher_atendente
+import os
+from pathlib import Path
 
 app = Flask(__name__)
 
-especialidades = {
-    'Clínica Geral': list(range(1, 61)),
-    'Ginecologia': list(range(1, 41)),
-    'Pediatria': list(range(1, 41)),
-    'Geriatria': list(range(1, 41)),
-    'Ortopedia': list(range(1, 41))
-}
+instance_path = Path(__file__).parent / "instance"
+instance_path.mkdir(exist_ok=True) 
+db_path = instance_path / "senhas.db"
 
-fila_preferencial = {esp: [] for esp in especialidades}
-fila_normal = {esp: [] for esp in especialidades}
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-atendentes = ["Atendente 1", "Atendente 2"]
-turno = 0
-ultimas_senhas = []
+db.init_app(app)
+
+with app.app_context():
+    try:
+        db.create_all()
+        print(f"Banco de dados criado com sucesso em: {db_path}")
+    except Exception as e:
+        print(f"Erro ao criar banco de dados: {e}")
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global turno
-
     if request.method == "POST":
         especialidade = request.form['especialidade']
-        tipo = int(request.form['tipo'])
+        tipo = request.form['tipo']  
 
-        if especialidades[especialidade]:
-            numero_senha = especialidades[especialidade].pop(0)
-            tipo_senha = "P" if tipo == 1 else "N"
-            senha_usuario = f"{tipo_senha}{numero_senha:03d}"
+        tipo_letra = 'P' if tipo == '1' else 'N'
 
-            if tipo == 1:
-                fila_preferencial[especialidade].append(senha_usuario)
-            else:
-                fila_normal[especialidade].append(senha_usuario)
+        try:
+            ultima = (Senha.query
+                      .filter_by(especialidade=especialidade, tipo=tipo_letra)
+                      .order_by(Senha.numero.desc())
+                      .first())
+            numero = (ultima.numero + 1) if ultima else 1
 
-            return render_template('index.html', senha=senha_usuario, especialidade=especialidade, especialidades=especialidades)
+            senha = Senha(
+                numero=numero,
+                tipo=tipo_letra,
+                especialidade=especialidade,
+                hora_criacao=datetime.now(),
+                status='aguardando'
+            )
+            db.session.add(senha)
+            db.session.commit()
 
-        else:
-            return render_template('index.html', mensagem="Não há mais senhas disponíveis para essa especialidade.", especialidades=especialidades)
+            return render_template('index.html', 
+                                 senha=senha.codigo, 
+                                 especialidade=especialidade,
+                                 especialidades=get_especialidades())
+
+        except Exception as e:
+            print(f"Erro ao gerar senha: {e}")
+            return "Erro ao processar sua solicitação", 500
 
     senha_chamada = None
     if request.args.get("chamar"):
-        senha_chamada = chamar_proxima_senha()
+        senha_chamada = chamar_proxima()
 
-    return render_template("index.html", senha_chamada=senha_chamada, especialidades=especialidades)
+    return render_template('index.html', 
+                         senha_chamada=senha_chamada, 
+                         especialidades=get_especialidades())
 
 @app.route("/monitor")
 def monitor():
-    return render_template("monitor.html", senhas=ultimas_senhas)
+    try:
+        ultimas = (Senha.query
+                   .filter(Senha.status == 'chamada')
+                   .order_by(Senha.hora_chamada.desc())
+                   .limit(10)
+                   .all())
+        return render_template("monitor.html", senhas=ultimas)
+    except Exception as e:
+        print(f"Erro ao acessar monitor: {e}")
+        return "Erro ao carregar o monitor", 500
 
-def chamar_proxima_senha():
-    global turno
+def chamar_proxima():
+    try:
+        senha = (Senha.query
+                 .filter_by(status='aguardando', tipo='P')
+                 .order_by(Senha.hora_criacao)
+                 .first())
 
-    for esp in especialidades:
-        if fila_preferencial[esp]:
-            senha = fila_preferencial[esp].pop(0)
-            tipo = "Preferencial"
-        elif fila_normal[esp]:
-            senha = fila_normal[esp].pop(0)
-            tipo = "Normal"
-        else:
-            continue
+        if not senha:
+            senha = (Senha.query
+                     .filter_by(status='aguardando', tipo='N')
+                     .order_by(Senha.hora_criacao)
+                     .first())
 
-        atendente = atendentes[turno % 2]
-        turno += 1
+        if senha:
+            senha.status = 'chamada'
+            senha.atendente = escolher_atendente()
+            senha.hora_chamada = datetime.now()
+            db.session.commit()
 
-        registro = {
-            "senha": senha,
-            "especialidade": esp,
-            "tipo": tipo,
-            "atendente": atendente
-        }
+            return f"Senha chamada: {senha.codigo} (Especialidade: {senha.especialidade}) - Atendente: {senha.atendente}"
 
-        ultimas_senhas.insert(0, registro)
-        ultimas_senhas[:] = ultimas_senhas[:10]
-
-        return f"Senha chamada: {senha} (Especialidade: {esp}) - Atendente: {atendente}"
-
-    return "Não há senhas para chamar no momento."
+        return "Não há senhas para chamar no momento."
+    except Exception as e:
+        print(f"Erro ao chamar próxima senha: {e}")
+        return "Erro no sistema de chamada", 500
 
 if __name__ == "__main__":
     app.run(debug=True)
