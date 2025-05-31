@@ -11,7 +11,7 @@ instance_path = Path(__file__).parent / "instance"
 instance_path.mkdir(exist_ok=True) 
 db_path = instance_path / "senhas.db"
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
@@ -70,7 +70,7 @@ def monitor():
     try:
         ultimas = (Senha.query
                    .filter(Senha.status == 'chamada')
-                   .order_by(Senha.hora_chamada.desc())
+                   .order_by(Senha.tipo.desc(), Senha.hora_chamada.desc())
                    .limit(10)
                    .all())
         return render_template("monitor.html", senhas=ultimas)
